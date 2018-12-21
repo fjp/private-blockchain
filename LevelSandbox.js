@@ -77,8 +77,10 @@ class LevelSandbox {
 
 
     // Method that return the height
+    // This function returns 0 if the blockchain contains only the genesis block
     getBlocksCount() {
-        let count = 0;
+        // Start block count at -1 if the chain is empty
+        let count = -1;
         return new Promise((resolve, reject) => {
             this.db.createReadStream()
                 .on('data', (data) => {

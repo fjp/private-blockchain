@@ -25,7 +25,7 @@ class Blockchain {
     // will not create the genesis block
     generateGenesisBlock(){
         this.getBlockHeight().then((height) => {
-            if (height == 0) {
+            if (height === -1) {
                 let genesisBlock = new Block.Block("First block in the chain - Genesis Block");
                 this.addBlock(genesisBlock);
             }
@@ -54,7 +54,8 @@ class Blockchain {
         return new Promise((resolve, reject) => {
             // Block height from levelDB
             this.getBlockHeight().then((height) => {
-                newBlock.height = height;
+                newBlock.height = height+1;
+                console.log(height);
                 // UTC timestamp
                 newBlock.timeStamp = new Date().getTime().toString().slice(0,-3);
                 if (newBlock.height > 0) {
