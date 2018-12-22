@@ -72,7 +72,7 @@ class Blockchain {
                     });
                 } else {
                     newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-                    resolve(this.db.addDataToLevelDB(JSON.stringify(newBlock).toString()));
+                    resolve(this.db.addDataToLevelDB(JSON.stringify(newBlock)));
                 }
             }).catch((err) => {
                 console.log("Error in addBlock in getBlockHeight", err);
@@ -139,7 +139,7 @@ class Blockchain {
         return new Promise((resolve, reject) => {
             var promises = [];
             this.getBlockHeight().then((height) => {
-                for (let i = 0; i < height - 1; i++) {
+                for (let i = 0; i <= height; i++) {
                     // validate block
                     promises.push(this.validateBlock(i));
                 }
