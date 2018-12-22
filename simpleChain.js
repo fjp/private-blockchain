@@ -66,7 +66,7 @@ myBlockChain.validateBlock(0).then((valid) => {
 
 
 /** Tampering a Block this is only for the purpose of testing the validation methods */
-/*
+
 myBlockChain.getBlock(5).then((block) => {
 	let blockAux = block;
 	blockAux.body = "Tampered Block";
@@ -95,7 +95,7 @@ myBlockChain.getBlock(6).then((block) => {
 		}
 	}).catch((err) => { console.log(err);});
 }).catch((err) => { console.log(err);});
-*/
+
 
 /***********************************************
  ***************** Validate Chain  *************

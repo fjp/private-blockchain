@@ -23,138 +23,85 @@ class Blockchain {
     // You have to options, because the method will always execute when you create your blockchain
     // you will need to set this up statically or instead you can verify if the height !== 0 then you
     // will not create the genesis block
-    generateGenesisBlock(){
-        this.getBlockHeight().then((height) => {
-            if (height === -1) {
-                let genesisBlock = new Block.Block("First block in the chain - Genesis Block");
-                this.addBlock(genesisBlock);
-            }
-        }).catch((err) => {
-            console.log("Error in generateGenesisBlock", err);
-        });
+    async generateGenesisBlock(){
+        let height = this.getBlockHeight();
+        if (height === -1) {
+            let genesisBlock = new Block.Block("First block in the chain - Genesis Block");
+            this.addBlock(genesisBlock);
+        }
     }
 
     // Get block height, it is auxiliar method that returns the height of the blockchain
-    getBlockHeight() {
-        return new Promise((resolve, reject) => {
-            this.db.getBlocksCount().then((height) => {
-                resolve(height);
-            }).catch((err) => {
-                console.log("Error in getBlockHeight", err);
-                reject(err);
-            });
-        }).catch((err) => {
-            console.log("Error in getBlockHeight", err);
-            reject(err);
-        });
+    async getBlockHeight() {
+        let height = await this.db.getBlocksCount();
+        return height;
     }
 
     // Add new block
-    addBlock(newBlock) {
-        return new Promise((resolve, reject) => {
-            // Block height from levelDB
-            this.getBlockHeight().then((height) => {
-                newBlock.height = height+1;
-                console.log(height);
-                // UTC timestamp
-                newBlock.timeStamp = new Date().getTime().toString().slice(0,-3);
-                if (newBlock.height > 0) {
-                    // previous block hash
-                    this.getBlock(newBlock.height - 1).then((previousBlock) => {
-                        newBlock.previousBlockHash = previousBlock.hash;
-                        // SHA256 requires a string of data
-                        newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-                        // add block to chain
-                        resolve(this.db.addDataToLevelDB(JSON.stringify(newBlock).toString()));
-                    }).catch((err) => {
-                        console.log("Error in addBlock in getLevelDBData", err);
-                        reject(err);
-                    });
-                } else {
-                    newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
-                    resolve(this.db.addDataToLevelDB(JSON.stringify(newBlock)));
-                }
-            }).catch((err) => {
-                console.log("Error in addBlock in getBlockHeight", err);
-                reject(err);
-            });
-        }).catch((err) => {
-            console.log("Error in addBlock in Promise", err);
-        });
+    async addBlock(newBlock) {
+        // Block height from levelDB
+        let height = await this.getBlockHeight();
+        newBlock.height = height+1;
+        // UTC timestamp
+        newBlock.timeStamp = new Date().getTime().toString().slice(0,-3);
+        if (newBlock.height > 0) {
+            // previous block hash
+            let previousBlock = await this.getBlock(newBlock.height - 1);
+            newBlock.previousBlockHash = previousBlock.hash;
+            // SHA256 requires a string of data
+            newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+            // add block to chain
+            return this.db.addDataToLevelDB(JSON.stringify(newBlock).toString());
+        } else {
+            newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+            return this.db.addDataToLevelDB(JSON.stringify(newBlock));
+        }
     }
 
     // Get Block By Height
-    getBlock(height) {
-        return new Promise((resolve, reject) => {
-            this.db.getLevelDBData(height).then((block) => {
-                block = JSON.parse(block);
-                resolve(block);
-            }).catch((err) => {
-                console.log("Error in getBlock in Promise", err);
-                reject(err);
-            });
-        }).catch((err) => {
-            console.log("Error in getBlock", err);
-        });
+    async getBlock(height) {
+        let block = await this.db.getLevelDBData(height);
+        block = JSON.parse(block);
+        return block;
     }
 
     // Validate if Block is being tampered by Block Height
-    validateBlock(height) {
-        return new Promise((resolve, reject) => {
-            this.getBlock(height).then((block) => {
-                let blockHash = block.hash;
-                block.hash = "";
-                let validBlockHash = SHA256(JSON.stringify(block)).toString();
-                if (blockHash === validBlockHash) {
-                    if (height > 0) {
-                        // Get previous block hash to check with the value stored inside this block
-                        this.getBlock(height - 1).then((previousBlock) => {
-                            if (previousBlock.hash === block.previousBlockHash) {
-                                resolve(true);
-                            } else {
-                                resolve(false);
-                            }
-                        }).catch((err) => {
-                            console.log("Error in validateBlock in getBlock(-1)", err);
-                            reject(err);
-                        });
-                    } else {
-                        // Genesis block
-                        resolve(true);
-                    }
+    async validateBlock(height) {
+        let block = await this.getBlock(height);
+        let blockHash = block.hash;
+        block.hash = "";
+        let validBlockHash = SHA256(JSON.stringify(block)).toString();
+        if (blockHash === validBlockHash) {
+            if (height > 0) {
+                // Get previous block hash to check with the value stored inside this block
+                let previousBlock = await this.getBlock(height - 1);
+                if (previousBlock.hash === block.previousBlockHash) {
+                    return true;
                 } else {
-                    resolve(false);
+                    return false;
                 }
-            }).catch((err) => {
-                console.log(err);
-                reject(err);
-            });
-        }).catch((err) => {
-            console.log("Error in validateBlock", err);
-        });
+            } else {
+                // Genesis block
+                return true;
+            }
+        } else {
+            return false;
+        }
     }
 
     // Validate Blockchain
-    validateChain() {
-        return new Promise((resolve, reject) => {
-            var promises = [];
-            this.getBlockHeight().then((height) => {
-                for (let i = 0; i <= height; i++) {
-                    // validate block
-                    promises.push(this.validateBlock(i));
-                }
-                Promise.all(promises).then((values) => {
-                    if (values.every((value) => value === true)) {
-                        resolve(true);
-                    } else {
-                        resolve(values);
-                    }
-                }).catch((err) => {
-                    console.log("Error in validateChain in Promise.all", err);
-                    reject(err);
-                });
-            });
-        });
+    async validateChain() {
+        let errorLog = [];
+        let isValid;
+        let height = await this.getBlockHeight();
+        for (let i = 0; i <= height; i++) {
+            // validate block
+            isValid = await this.validateBlock(i);
+            if (!isValid) {
+                errorLog.push(i);
+            }
+        }
+        return errorLog;
     }
 
     // Utility Method to Tamper a Block for Test Validation
