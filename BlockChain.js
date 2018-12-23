@@ -24,7 +24,7 @@ class Blockchain {
     // you will need to set this up statically or instead you can verify if the height !== 0 then you
     // will not create the genesis block
     async generateGenesisBlock(){
-        let height = this.getBlockHeight();
+        let height = await this.getBlockHeight();
         if (height === -1) {
             let genesisBlock = new Block.Block("First block in the chain - Genesis Block");
             this.addBlock(genesisBlock);
