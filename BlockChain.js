@@ -85,6 +85,7 @@ class Blockchain {
                 return true;
             }
         } else {
+            console.log(`Block #${blockHeight} invalid hash: ${blockHash} <> ${validBlockHash}`);
             return false;
         }
     }
@@ -100,6 +101,12 @@ class Blockchain {
             if (!isValid) {
                 errorLog.push(i);
             }
+        }
+        if (errorLog.length > 0) {
+            console.log(`Block errors = ${errorLog.length}`)
+            console.log(`Blocks: ${errorLog}`)
+        } else {
+            console.log('No errors detected')
         }
         return errorLog;
     }
